@@ -1,16 +1,14 @@
+use bevy_ecs::prelude::*;
 use macroquad::prelude::*;
-mod enemy;
 
-mod player;
-use player::Player;
+mod components;
+mod consts;
+mod resources;
+mod systems;
 
-use crate::enemy::{Enemy, EnemyType};
-
-mod speed {
-    pub const SLOW: f32 = 100.0;
-    pub const MEDIUM: f32 = 150.0;
-    pub const FAST: f32 = 200.0;
-}
+use components::*;
+use resources::*;
+use systems::*;
 
 fn get_window_config() -> Conf {
     Conf {
@@ -23,24 +21,54 @@ fn get_window_config() -> Conf {
 
 #[macroquad::main(get_window_config)]
 async fn main() {
-    let screen_center = Vec2::new(screen_width() / 2.0, screen_height() / 2.0);
-    let mut player = Player::new(screen_center, speed::FAST);
+    set_cursor_grab(true);
 
-    let mut enemies: Vec<Enemy> = vec![
-        Enemy::new(Vec2::new(0.0, 200.0) + screen_center, EnemyType::Triangle),
-        Enemy::new(Vec2::new(200.0, -200.0) + screen_center, EnemyType::Square),
-        Enemy::new(
-            Vec2::new(-200.0, -200.0) + screen_center,
-            EnemyType::Hexagon,
+    let mut world = World::new();
+    let screen_center = Vec2::new(screen_width() / 2.0, screen_height() / 2.0);
+
+    world.spawn((Player, Position(screen_center), Speed(consts::speed::FAST)));
+
+    let enemies = [
+        (
+            EnemyShape::Triangle,
+            Vec2::new(0.0, 200.0),
+            consts::speed::FAST,
+        ),
+        (
+            EnemyShape::Square,
+            Vec2::new(200.0, -200.0),
+            consts::speed::MEDIUM,
+        ),
+        (
+            EnemyShape::Hexagon,
+            Vec2::new(-200.0, -200.0),
+            consts::speed::SLOW,
         ),
     ];
 
-    set_cursor_grab(true);
+    for (shape, offset, speed) in enemies {
+        world.spawn((shape, Position(offset + screen_center), Speed(speed)));
+    }
+
+    world.insert_resource(FrameTime(0.0));
+    world.insert_resource(ScreenSize {
+        width: screen_width(),
+        height: screen_height(),
+    });
+
+    let mut schedule = Schedule::default();
+    schedule.add_systems((
+        player_controls,
+        enemy_movement.after(player_controls),
+        draw_player.after(enemy_movement),
+        draw_enemies.after(enemy_movement),
+    ));
 
     loop {
-        let screen_width = screen_width();
-        let screen_height = screen_height();
-        let frame_time = get_frame_time();
+        world.resource_mut::<FrameTime>().0 = get_frame_time();
+        let mut screen = world.resource_mut::<ScreenSize>();
+        screen.width = screen_width();
+        screen.height = screen_height();
 
         clear_background(Color {
             r: 0.0,
@@ -49,12 +77,7 @@ async fn main() {
             a: 1.0,
         });
 
-        player.handle_controls(frame_time, screen_width, screen_height);
-        player.draw();
-
-        for enemy in &enemies {
-            enemy.draw();
-        }
+        schedule.run(&mut world);
 
         next_frame().await
     }
