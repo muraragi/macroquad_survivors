@@ -1,14 +1,16 @@
 use bevy_ecs::prelude::*;
 use macroquad::prelude::*;
 
-mod components;
 mod consts;
+mod enemy;
+mod movement;
+mod player;
 mod resources;
-mod systems;
 
-use components::*;
+use enemy::*;
+use movement::*;
+use player::*;
 use resources::*;
-use systems::*;
 
 fn get_window_config() -> Conf {
     Conf {
@@ -28,40 +30,20 @@ async fn main() {
 
     world.spawn((Player, Position(screen_center), Speed(consts::speed::FAST)));
 
-    let enemies = [
-        (
-            EnemyShape::Triangle,
-            Vec2::new(0.0, 200.0),
-            consts::speed::FAST,
-        ),
-        (
-            EnemyShape::Square,
-            Vec2::new(200.0, -200.0),
-            consts::speed::MEDIUM,
-        ),
-        (
-            EnemyShape::Hexagon,
-            Vec2::new(-200.0, -200.0),
-            consts::speed::SLOW,
-        ),
-    ];
-
-    for (shape, offset, speed) in enemies {
-        world.spawn((shape, Position(offset + screen_center), Speed(speed)));
-    }
-
     world.insert_resource(FrameTime(0.0));
     world.insert_resource(ScreenSize {
         width: screen_width(),
         height: screen_height(),
     });
+    world.insert_resource(EnemyTimer(Timer::new(1.0)));
 
     let mut schedule = Schedule::default();
     schedule.add_systems((
         player_controls,
+        enemy_spawner,
         enemy_movement.after(player_controls),
         draw_player.after(enemy_movement),
-        draw_enemies.after(enemy_movement),
+        draw_enemies.after(enemy_movement).after(enemy_spawner),
     ));
 
     loop {
