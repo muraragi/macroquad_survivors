@@ -123,14 +123,14 @@ pub fn draw_enemies(query: Query<(&Position, &Enemy)>) {
     for (pos, enemy) in &query {
         match enemy.enemy_type {
             EnemyType::Hexagon => {
-                draw_hexagon(pos.0.x, pos.0.y, 8.0, 1.0, true, RED, RED);
+                draw_hexagon(pos.0.x, pos.0.y, 12.0, 1.0, true, RED, RED);
             }
             EnemyType::Triangle => {
                 let v = |i: f32| pos.0 + Vec2::from_angle(-FRAC_PI_2 + i * TAU / 3.0) * PLAYER_SIZE;
                 draw_triangle(v(0.0), v(1.0), v(2.0), RED);
             }
             EnemyType::Square => {
-                draw_rectangle(pos.0.x, pos.0.y, 16.0, 16.0, RED);
+                draw_rectangle(pos.0.x - 12.0, pos.0.y - 12.0, 24.0, 24.0, RED);
             }
         }
     }
