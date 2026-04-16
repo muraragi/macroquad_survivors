@@ -3,6 +3,7 @@ use macroquad::prelude::*;
 
 use crate::movement::{Position, Speed};
 use crate::resources::{FrameTime, ScreenSize};
+use crate::stats::Health;
 
 pub const PLAYER_SIZE: f32 = 16.0;
 
@@ -36,6 +37,17 @@ pub fn player_controls(
         pos.0 += dir.normalize_or_zero() * speed.0 * frame_time.0;
         pos.0.x = clamp(pos.0.x, PLAYER_SIZE, screen.width - PLAYER_SIZE);
         pos.0.y = clamp(pos.0.y, PLAYER_SIZE, screen.height - PLAYER_SIZE);
+    }
+}
+
+pub fn player_health_ui(player: Query<(Entity, &Health), With<Player>>, mut commands: Commands) {
+    if let Ok((player_entity, health)) = player.single() {
+        if health.0 <= 0.0 {
+            commands.entity(player_entity).despawn();
+        }
+
+        let health_text = format!("Health: {}", health.0);
+        draw_text(&health_text, 24.0, 36.0, 32.0, WHITE);
     }
 }
 
