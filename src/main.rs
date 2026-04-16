@@ -6,11 +6,13 @@ mod enemy;
 mod movement;
 mod player;
 mod resources;
+mod stats;
 
 use enemy::*;
 use movement::*;
 use player::*;
 use resources::*;
+use stats::*;
 
 fn get_window_config() -> Conf {
     Conf {
@@ -28,22 +30,33 @@ async fn main() {
     let mut world = World::new();
     let screen_center = Vec2::new(screen_width() / 2.0, screen_height() / 2.0);
 
-    world.spawn((Player, Position(screen_center), Speed(consts::speed::FAST)));
+    world.spawn((
+        Player,
+        Position(screen_center),
+        Speed(consts::speed::FAST),
+        Health(consts::health::STRONG),
+        Damage(consts::damage::STARTING_PLAYER_DAMAGE),
+    ));
 
     world.insert_resource(FrameTime(0.0));
     world.insert_resource(ScreenSize {
         width: screen_width(),
         height: screen_height(),
     });
-    world.insert_resource(EnemyTimer(Timer::new(1.0)));
+    world.insert_resource(EnemySpawnTimer(Timer::new(1.0)));
+    world.insert_resource(EnemyAttackTimer(Timer::new(0.5)));
 
     let mut schedule = Schedule::default();
     schedule.add_systems((
         player_controls,
         enemy_spawner,
         enemy_movement.after(player_controls),
-        draw_player.after(enemy_movement),
         draw_enemies.after(enemy_movement).after(enemy_spawner),
+        draw_player.after(enemy_movement),
+        enemy_player_collision
+            .after(enemy_movement)
+            .after(player_controls),
+        player_health_ui.after(enemy_player_collision),
     ));
 
     loop {
