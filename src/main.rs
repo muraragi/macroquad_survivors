@@ -3,6 +3,7 @@ use macroquad::prelude::*;
 
 mod consts;
 mod enemy;
+mod graphics;
 mod movement;
 mod player;
 mod resources;
@@ -45,6 +46,7 @@ async fn main() {
     });
     world.insert_resource(EnemySpawnTimer(Timer::new(1.0)));
     world.insert_resource(EnemyAttackTimer(Timer::new(0.5)));
+    world.insert_resource(PlayerTarget(None));
 
     let mut schedule = Schedule::default();
     schedule.add_systems((
@@ -57,6 +59,8 @@ async fn main() {
             .after(enemy_movement)
             .after(player_controls),
         player_health_ui.after(enemy_player_collision),
+        seek_target.after(enemy_movement),
+        draw_reticle.after(seek_target),
     ));
 
     loop {
