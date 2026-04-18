@@ -8,12 +8,14 @@ mod movement;
 mod player;
 mod resources;
 mod stats;
+mod weapon;
 
 use enemy::*;
 use movement::*;
 use player::*;
 use resources::*;
 use stats::*;
+use weapon::*;
 
 fn get_window_config() -> Conf {
     Conf {
@@ -33,6 +35,10 @@ async fn main() {
 
     world.spawn((
         Player,
+        Weapon {
+            damage: 1.0,
+            projectile_velocity: 500.0,
+        },
         Position(screen_center),
         Speed(consts::speed::FAST),
         Health(consts::health::STRONG),
@@ -44,9 +50,13 @@ async fn main() {
         width: screen_width(),
         height: screen_height(),
     });
+
     world.insert_resource(EnemySpawnTimer(Timer::new(1.0)));
     world.insert_resource(EnemyAttackTimer(Timer::new(0.5)));
+
     world.insert_resource(PlayerTarget(None));
+
+    world.insert_resource(WeaponAttackTimer(Timer::new(0.2)));
 
     let mut schedule = Schedule::default();
     schedule.add_systems((
@@ -61,6 +71,9 @@ async fn main() {
         player_health_ui.after(enemy_player_collision),
         seek_target.after(enemy_movement),
         draw_reticle.after(seek_target),
+        fire_weapon.after(seek_target),
+        move_projectiles.after(fire_weapon).after(enemy_movement),
+        draw_projectiles.after(move_projectiles),
     ));
 
     loop {
