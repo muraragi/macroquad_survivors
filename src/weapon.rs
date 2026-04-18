@@ -11,6 +11,7 @@ use crate::{
 #[derive(Resource)]
 pub struct WeaponAttackTimer(pub Timer);
 
+// TODO: WeaponAttackTimer based fire_rate
 #[derive(Component)]
 pub struct Weapon {
     pub damage: f32,
