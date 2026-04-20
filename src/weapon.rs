@@ -76,13 +76,12 @@ pub fn projectile_enemy_collision(
     for (projectile, porjectile_pos, projectile_entity_id) in projectiles {
         if let Ok((target_pos, mut target_health, enemy_entity_id)) =
             enemy_query.get_mut(projectile.target)
+            && check_simple_collision(target_pos.0, porjectile_pos.0, PROJECTILE_SIZE + 8.0)
         {
-            if check_simple_collision(target_pos.0, porjectile_pos.0, PROJECTILE_SIZE + 8.0) {
-                target_health.0 -= projectile.damage;
-                commands.entity(projectile_entity_id).despawn();
-                if target_health.0 <= 0.0 {
-                    commands.entity(enemy_entity_id).despawn();
-                }
+            target_health.0 -= projectile.damage;
+            commands.entity(projectile_entity_id).despawn();
+            if target_health.0 <= 0.0 {
+                commands.entity(enemy_entity_id).despawn();
             }
         }
     }
