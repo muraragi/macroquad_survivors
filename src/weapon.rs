@@ -6,7 +6,11 @@ use crate::{
     movement::Position,
     player::{Player, PlayerTarget},
     resources::{FrameTime, Timer},
+    stats::Health,
+    utils::{check_simple_collision, seek_target},
 };
+
+const PROJECTILE_SIZE: f32 = 2.0;
 
 #[derive(Resource)]
 pub struct WeaponAttackTimer(pub Timer);
@@ -55,22 +59,42 @@ pub fn move_projectiles(
     mut commands: Commands,
 ) {
     for (projectile, mut pos, entity_id) in projectiles {
-        // let player_pos = player_pos.0;
-        // for (mut pos, speed) in &mut enemies {
-        //     let dir = player_pos - pos.0;
-        //     pos.0 += dir.normalize_or_zero() * speed.0 * frame_time.0;
-        // }
         if let Ok(target_pos) = enemy_pos_query.get(projectile.target) {
-            let dir = target_pos.0 - pos.0;
-            pos.0 += dir.normalize_or_zero() * projectile.velocity * frame_time.0;
+            let movement = seek_target(pos.0, target_pos.0, projectile.velocity) * frame_time.0;
+            pos.0 += movement
         } else {
             commands.entity(entity_id).despawn();
         }
     }
 }
 
+pub fn projectile_enemy_collision(
+    projectiles: Query<(&Projectile, &Position, Entity), Without<Enemy>>,
+    mut enemy_query: Query<(&Position, &mut Health, Entity), With<Enemy>>,
+    mut commands: Commands,
+) {
+    for (projectile, porjectile_pos, projectile_entity_id) in projectiles {
+        if let Ok((target_pos, mut target_health, enemy_entity_id)) =
+            enemy_query.get_mut(projectile.target)
+        {
+            if check_simple_collision(target_pos.0, porjectile_pos.0, PROJECTILE_SIZE + 8.0) {
+                target_health.0 -= projectile.damage;
+                commands.entity(projectile_entity_id).despawn();
+                if target_health.0 <= 0.0 {
+                    commands.entity(enemy_entity_id).despawn();
+                }
+            }
+        }
+    }
+}
+
 pub fn draw_projectiles(projectiles: Query<&Position, With<Projectile>>) {
     for projectile_pos in projectiles {
-        draw_circle(projectile_pos.0.x, projectile_pos.0.y, 2.0, WHITE);
+        draw_circle(
+            projectile_pos.0.x,
+            projectile_pos.0.y,
+            PROJECTILE_SIZE,
+            WHITE,
+        );
     }
 }

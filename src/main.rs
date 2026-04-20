@@ -8,6 +8,7 @@ mod movement;
 mod player;
 mod resources;
 mod stats;
+mod utils;
 mod weapon;
 
 use enemy::*;
@@ -62,18 +63,21 @@ async fn main() {
     schedule.add_systems((
         player_controls,
         enemy_spawner,
-        enemy_movement.after(player_controls),
-        draw_enemies.after(enemy_movement).after(enemy_spawner),
-        draw_player.after(enemy_movement),
+        move_enemies.after(player_controls),
+        draw_enemies.after(move_enemies).after(enemy_spawner),
+        draw_player.after(move_enemies),
         enemy_player_collision
-            .after(enemy_movement)
+            .after(move_enemies)
             .after(player_controls),
         player_health_ui.after(enemy_player_collision),
-        seek_target.after(enemy_movement),
-        draw_reticle.after(seek_target),
-        fire_weapon.after(seek_target),
-        move_projectiles.after(fire_weapon).after(enemy_movement),
+        select_target.after(move_enemies),
+        draw_reticle.after(select_target),
+        fire_weapon.after(select_target),
+        move_projectiles.after(fire_weapon).after(move_enemies),
         draw_projectiles.after(move_projectiles),
+        projectile_enemy_collision
+            .after(move_enemies)
+            .after(move_projectiles),
     ));
 
     loop {
