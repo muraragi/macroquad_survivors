@@ -4,9 +4,9 @@ use macroquad::{color::WHITE, shapes::draw_circle};
 use crate::{
     enemy::Enemy,
     movement::Position,
-    player::{Player, PlayerTarget},
+    player::PlayerTarget,
     resources::{FrameTime, Timer},
-    stats::Health,
+    stats::{Damage, Health},
     utils::{check_simple_collision, seek_target},
 };
 
@@ -18,37 +18,40 @@ pub struct WeaponAttackTimer(pub Timer);
 // TODO: WeaponAttackTimer based fire_rate
 #[derive(Component)]
 pub struct Weapon {
-    pub damage: f32,
     // fire_rate: f32,
     pub projectile_velocity: f32,
+    pub holder: Entity,
 }
 
 #[derive(Component)]
 pub struct Projectile {
-    damage: f32,
     velocity: f32,
     target: Entity,
 }
 
 pub fn fire_weapon(
     target: Res<PlayerTarget>,
-    player: Query<(&Position, &Weapon), With<Player>>,
+    holders: Query<&Position>,
+    weapons: Query<(&Weapon, &Damage)>,
     mut attack_timer: ResMut<WeaponAttackTimer>,
     frame_time: Res<FrameTime>,
     mut commands: Commands,
 ) {
-    if let Ok((player_position, player_weapon)) = player.single()
-        && attack_timer.0.tick(frame_time.0)
+    if attack_timer.0.tick(frame_time.0)
         && let Some(target) = target.0
     {
-        commands.spawn((
-            Position(player_position.0),
-            Projectile {
-                damage: player_weapon.damage,
-                velocity: player_weapon.projectile_velocity,
-                target,
-            },
-        ));
+        for (weapon, weapon_damage) in weapons {
+            if let Ok(holder_position) = holders.get(weapon.holder) {
+                commands.spawn((
+                    Position(holder_position.0),
+                    Projectile {
+                        velocity: weapon.projectile_velocity,
+                        target,
+                    },
+                    Damage(weapon_damage.0),
+                ));
+            };
+        }
     }
 }
 
@@ -69,16 +72,16 @@ pub fn move_projectiles(
 }
 
 pub fn projectile_enemy_collision(
-    projectiles: Query<(&Projectile, &Position, Entity), Without<Enemy>>,
+    projectiles: Query<(&Projectile, &Position, &Damage, Entity), Without<Enemy>>,
     mut enemy_query: Query<(&Position, &mut Health, Entity), With<Enemy>>,
     mut commands: Commands,
 ) {
-    for (projectile, porjectile_pos, projectile_entity_id) in projectiles {
+    for (projectile, porjectile_pos, projectile_damage, projectile_entity_id) in projectiles {
         if let Ok((target_pos, mut target_health, enemy_entity_id)) =
             enemy_query.get_mut(projectile.target)
             && check_simple_collision(target_pos.0, porjectile_pos.0, PROJECTILE_SIZE + 8.0)
         {
-            target_health.0 -= projectile.damage;
+            target_health.0 -= projectile_damage.0;
             commands.entity(projectile_entity_id).despawn();
             if target_health.0 <= 0.0 {
                 commands.entity(enemy_entity_id).despawn();

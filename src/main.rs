@@ -34,15 +34,20 @@ async fn main() {
     let mut world = World::new();
     let screen_center = Vec2::new(screen_width() / 2.0, screen_height() / 2.0);
 
+    let player = world
+        .spawn((
+            Player,
+            Position(screen_center),
+            Speed(consts::speed::FAST),
+            Health(consts::health::STRONG),
+        ))
+        .id();
+
     world.spawn((
-        Player,
         Weapon {
-            damage: 1.0,
             projectile_velocity: 500.0,
+            holder: player,
         },
-        Position(screen_center),
-        Speed(consts::speed::FAST),
-        Health(consts::health::STRONG),
         Damage(consts::damage::STARTING_PLAYER_DAMAGE),
     ));
 
