@@ -58,7 +58,7 @@ pub fn player_health_ui(player: Query<(Entity, &Health), With<Player>>, mut comm
     }
 }
 
-pub fn seek_target(
+pub fn select_target(
     enemies: Query<(Entity, &Position), With<Enemy>>,
     player_pos: Query<&Position, With<Player>>,
     mut target: ResMut<PlayerTarget>,

@@ -9,6 +9,7 @@ use crate::movement::{Position, Speed};
 use crate::player::{PLAYER_SIZE, Player};
 use crate::resources::{FrameTime, ScreenSize, Timer};
 use crate::stats::{Damage, Health};
+use crate::utils::{check_simple_collision, seek_target};
 
 const DAMAGE_RANGE: f32 = 8.0;
 
@@ -85,7 +86,7 @@ pub fn enemy_spawner(
     }
 }
 
-pub fn enemy_movement(
+pub fn move_enemies(
     mut enemies: Query<(&mut Position, &Speed), (With<Enemy>, Without<Player>)>,
     player: Query<&Position, With<Player>>,
     frame_time: Res<FrameTime>,
@@ -93,8 +94,8 @@ pub fn enemy_movement(
     if let Ok(player_pos) = player.single() {
         let player_pos = player_pos.0;
         for (mut pos, speed) in &mut enemies {
-            let dir = player_pos - pos.0;
-            pos.0 += dir.normalize_or_zero() * speed.0 * frame_time.0;
+            let movement = seek_target(pos.0, player_pos, speed.0) * frame_time.0;
+            pos.0 += movement;
         }
     }
 }
@@ -105,15 +106,12 @@ pub fn enemy_player_collision(
     frame_time: Res<FrameTime>,
     mut enemy_attack_timer: ResMut<EnemyAttackTimer>,
 ) {
-    if let Ok((player_pos, mut player_health)) = player.single_mut() {
-        if enemy_attack_timer.0.tick(frame_time.0) {
-            for (enemy_pos, enemy_damage) in enemies {
-                let distance = (player_pos.0 - enemy_pos.0).length_squared();
-                let radius_sum = PLAYER_SIZE + DAMAGE_RANGE;
-
-                if distance < radius_sum * radius_sum {
-                    player_health.0 -= enemy_damage.0;
-                }
+    if let Ok((player_pos, mut player_health)) = player.single_mut()
+        && enemy_attack_timer.0.tick(frame_time.0)
+    {
+        for (enemy_pos, enemy_damage) in enemies {
+            if check_simple_collision(player_pos.0, enemy_pos.0, PLAYER_SIZE + DAMAGE_RANGE) {
+                player_health.0 -= enemy_damage.0;
             }
         }
     };
