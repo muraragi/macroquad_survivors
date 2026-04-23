@@ -1,10 +1,9 @@
-use std::f32::consts::{FRAC_PI_2, TAU};
-
 use bevy_ecs::prelude::*;
 use macroquad::prelude::*;
 use macroquad::rand::gen_range;
 
 use crate::consts::{damage, health, speed};
+use crate::graphics::get_equilateral_triangle_sides;
 use crate::movement::{Position, Speed};
 use crate::player::{PLAYER_SIZE, Player};
 use crate::resources::{FrameTime, ScreenSize, Timer};
@@ -124,8 +123,8 @@ pub fn draw_enemies(query: Query<(&Position, &Enemy)>) {
                 draw_hexagon(pos.0.x, pos.0.y, 12.0, 1.0, true, RED, RED);
             }
             EnemyType::Triangle => {
-                let v = |i: f32| pos.0 + Vec2::from_angle(-FRAC_PI_2 + i * TAU / 3.0) * PLAYER_SIZE;
-                draw_triangle(v(0.0), v(1.0), v(2.0), RED);
+                let sides = get_equilateral_triangle_sides(pos.0, PLAYER_SIZE);
+                draw_triangle(sides.0, sides.1, sides.2, RED);
             }
             EnemyType::Square => {
                 draw_rectangle(pos.0.x - 12.0, pos.0.y - 12.0, 24.0, 24.0, RED);

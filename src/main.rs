@@ -18,6 +18,8 @@ use resources::*;
 use stats::*;
 use weapon::*;
 
+use crate::graphics::{draw_particles, update_particles};
+
 fn get_window_config() -> Conf {
     Conf {
         window_title: "Macroquad Survivors".to_string(),
@@ -52,6 +54,7 @@ async fn main() {
     ));
 
     world.insert_resource(FrameTime(0.0));
+    world.insert_resource(TimeElapsed(0.0));
     world.insert_resource(ScreenSize {
         width: screen_width(),
         height: screen_height(),
@@ -74,7 +77,7 @@ async fn main() {
         enemy_player_collision
             .after(move_enemies)
             .after(player_controls),
-        player_health_ui.after(enemy_player_collision),
+        draw_player_health.after(enemy_player_collision),
         select_target.after(move_enemies),
         draw_reticle.after(select_target),
         fire_weapon.after(select_target),
@@ -83,10 +86,14 @@ async fn main() {
         projectile_enemy_collision
             .after(move_enemies)
             .after(move_projectiles),
+        draw_target_health.after(projectile_enemy_collision),
+        update_particles.after(projectile_enemy_collision),
+        draw_particles.after(update_particles),
     ));
 
     loop {
         world.resource_mut::<FrameTime>().0 = get_frame_time();
+        world.resource_mut::<TimeElapsed>().0 = get_time();
         let mut screen = world.resource_mut::<ScreenSize>();
         screen.width = screen_width();
         screen.height = screen_height();

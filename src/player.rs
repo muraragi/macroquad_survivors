@@ -47,15 +47,31 @@ pub fn player_controls(
     }
 }
 
-pub fn player_health_ui(player: Query<(Entity, &Health), With<Player>>, mut commands: Commands) {
+pub fn draw_player_health(player: Query<(Entity, &Health), With<Player>>, mut commands: Commands) {
     if let Ok((player_entity, health)) = player.single() {
         if health.0 <= 0.0 {
             commands.entity(player_entity).despawn();
         }
 
         let health_text = format!("Health: {}", health.0);
-        draw_text(&health_text, 24.0, 36.0, 32.0, WHITE);
+        draw_text(&health_text, 24.0, 36.0, 32.0, GREEN);
     }
+}
+
+pub fn draw_target_health(
+    target_id: Res<PlayerTarget>,
+    target_query: Query<&Health, With<Enemy>>,
+    screen: Res<ScreenSize>,
+) {
+    let mut health_text = String::from("No target");
+
+    if let Some(target_id) = target_id.0
+        && let Ok(target_health) = target_query.get(target_id)
+    {
+        health_text = format!("Target health: {}", target_health.0);
+    }
+
+    draw_text(&health_text, screen.width - 264.0, 36.0, 32.0, RED);
 }
 
 pub fn select_target(
