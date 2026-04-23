@@ -4,6 +4,8 @@ use bevy_ecs::prelude::*;
 pub struct FrameTime(pub f32);
 
 #[derive(Resource)]
+pub struct TimeElapsed(pub f64);
+#[derive(Resource)]
 pub struct ScreenSize {
     pub width: f32,
     pub height: f32,

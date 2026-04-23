@@ -3,6 +3,7 @@ use macroquad::{color::WHITE, shapes::draw_circle};
 
 use crate::{
     enemy::Enemy,
+    graphics::{Particle, create_explosion_particles},
     movement::Position,
     player::PlayerTarget,
     resources::{FrameTime, Timer},
@@ -85,6 +86,13 @@ pub fn projectile_enemy_collision(
             commands.entity(projectile_entity_id).despawn();
             if target_health.0 <= 0.0 {
                 commands.entity(enemy_entity_id).despawn();
+                let particles = create_explosion_particles();
+                commands.spawn_batch(
+                    particles
+                        .into_iter()
+                        .map(|particle| (Position(target_pos.0), particle))
+                        .collect::<Vec<(Position, Particle)>>(),
+                );
             }
         }
     }
