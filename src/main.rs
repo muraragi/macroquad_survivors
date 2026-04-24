@@ -1,9 +1,5 @@
 use bevy_ecs::prelude::*;
-use macroquad::{
-    miniquad::window::screen_size,
-    prelude::*,
-    ui::{Skin, hash, root_ui},
-};
+use macroquad::{prelude::*, ui::root_ui};
 
 mod consts;
 mod enemy;
