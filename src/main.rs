@@ -1,5 +1,9 @@
 use bevy_ecs::prelude::*;
-use macroquad::prelude::*;
+use macroquad::{
+    miniquad::window::screen_size,
+    prelude::*,
+    ui::{Skin, hash, root_ui},
+};
 
 mod consts;
 mod enemy;
@@ -8,6 +12,7 @@ mod movement;
 mod player;
 mod resources;
 mod stats;
+mod ui;
 mod utils;
 mod weapon;
 
@@ -18,7 +23,10 @@ use resources::*;
 use stats::*;
 use weapon::*;
 
-use crate::graphics::{draw_particles, update_particles};
+use crate::{
+    graphics::{Particle, draw_particles, update_particles},
+    ui::{get_skin, render_menu},
+};
 
 fn get_window_config() -> Conf {
     Conf {
@@ -29,30 +37,32 @@ fn get_window_config() -> Conf {
     }
 }
 
+#[derive(Event)]
+pub struct GameStateChange(pub GameState);
+
+#[derive(Resource, Copy, Clone)]
+pub enum GameState {
+    Menu,
+    Running,
+}
+
 #[macroquad::main(get_window_config)]
 async fn main() {
-    set_cursor_grab(true);
+    // set_cursor_grab(true);
+    let bg_color = Color {
+        r: 0.0,
+        g: 0.0,
+        b: 0.08,
+        a: 1.0,
+    };
+
+    let skin = get_skin(&bg_color);
+
+    root_ui().push_skin(&skin);
 
     let mut world = World::new();
-    let screen_center = Vec2::new(screen_width() / 2.0, screen_height() / 2.0);
 
-    let player = world
-        .spawn((
-            Player,
-            Position(screen_center),
-            Speed(consts::speed::FAST),
-            Health(consts::health::STRONG),
-        ))
-        .id();
-
-    world.spawn((
-        Weapon {
-            projectile_velocity: 500.0,
-            holder: player,
-        },
-        Damage(consts::damage::STARTING_PLAYER_DAMAGE),
-    ));
-
+    world.insert_resource(GameState::Menu);
     world.insert_resource(FrameTime(0.0));
     world.insert_resource(TimeElapsed(0.0));
     world.insert_resource(ScreenSize {
@@ -67,8 +77,8 @@ async fn main() {
 
     world.insert_resource(WeaponAttackTimer(Timer::new(0.2)));
 
-    let mut schedule = Schedule::default();
-    schedule.add_systems((
+    let mut game_schedule = Schedule::default();
+    game_schedule.add_systems((
         player_controls,
         enemy_spawner,
         move_enemies.after(player_controls),
@@ -91,21 +101,72 @@ async fn main() {
         draw_particles.after(update_particles),
     ));
 
+    let render_menu_id = world.register_system(render_menu);
+    let mut menu_schedule = Schedule::default();
+    menu_schedule.add_systems(render_menu);
+
+    world.add_observer(
+        |state: On<GameStateChange>, screen: Res<ScreenSize>, mut commands: Commands| match state.0
+        {
+            GameState::Menu => {
+                commands.queue(|world: &mut World| {
+                    let to_despawn: Vec<Entity> = world
+                        .query_filtered::<Entity, Or<(
+                            With<Player>,
+                            With<Enemy>,
+                            With<Projectile>,
+                            With<Weapon>,
+                            With<Particle>,
+                        )>>()
+                        .iter(world)
+                        .collect();
+                    for e in to_despawn {
+                        world.despawn(e);
+                    }
+                });
+            }
+            GameState::Running => {
+                let screen_center = Vec2::new(screen.width / 2.0, screen.height / 2.0);
+                let player = commands
+                    .spawn((
+                        Player,
+                        Position(screen_center),
+                        Speed(consts::speed::FAST),
+                        Health(consts::health::STRONG),
+                    ))
+                    .id();
+
+                commands.spawn((
+                    Weapon {
+                        projectile_velocity: 500.0,
+                        holder: player,
+                    },
+                    Damage(consts::damage::STARTING_PLAYER_DAMAGE),
+                ));
+            }
+        },
+    );
+
     loop {
+        let state = *world.resource::<GameState>();
+
         world.resource_mut::<FrameTime>().0 = get_frame_time();
         world.resource_mut::<TimeElapsed>().0 = get_time();
         let mut screen = world.resource_mut::<ScreenSize>();
         screen.width = screen_width();
         screen.height = screen_height();
+        clear_background(bg_color);
 
-        clear_background(Color {
-            r: 0.0,
-            g: 0.0,
-            b: 0.08,
-            a: 1.0,
-        });
-
-        schedule.run(&mut world);
+        match state {
+            GameState::Menu => {
+                world
+                    .run_system(render_menu_id)
+                    .expect("render menu failed");
+            }
+            GameState::Running => {
+                game_schedule.run(&mut world);
+            }
+        }
 
         next_frame().await
     }
