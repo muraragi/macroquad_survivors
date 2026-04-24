@@ -8,6 +8,7 @@ use crate::graphics::draw_reticle_at_pos;
 use crate::movement::{Position, Speed};
 use crate::resources::{FrameTime, ScreenSize};
 use crate::stats::Health;
+use crate::{GameState, GameStateChange};
 
 pub const PLAYER_SIZE: f32 = 16.0;
 
@@ -21,9 +22,12 @@ pub fn player_controls(
     mut query: Query<(&mut Position, &Speed), With<Player>>,
     frame_time: Res<FrameTime>,
     screen: Res<ScreenSize>,
+    mut game_state: ResMut<GameState>,
+    mut commands: Commands,
 ) {
     if is_key_pressed(KeyCode::Escape) {
-        std::process::exit(0);
+        *game_state = GameState::Menu;
+        commands.trigger(GameStateChange(*game_state));
     }
 
     for (mut pos, speed) in &mut query {
@@ -47,10 +51,15 @@ pub fn player_controls(
     }
 }
 
-pub fn draw_player_health(player: Query<(Entity, &Health), With<Player>>, mut commands: Commands) {
-    if let Ok((player_entity, health)) = player.single() {
+pub fn draw_player_health(
+    player: Query<&Health, With<Player>>,
+    mut game_state: ResMut<GameState>,
+    mut commands: Commands,
+) {
+    if let Ok(health) = player.single() {
         if health.0 <= 0.0 {
-            commands.entity(player_entity).despawn();
+            *game_state = GameState::Menu;
+            commands.trigger(GameStateChange(*game_state));
         }
 
         let health_text = format!("Health: {}", health.0);
