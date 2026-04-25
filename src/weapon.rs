@@ -13,15 +13,21 @@ use crate::{
 
 const PROJECTILE_SIZE: f32 = 2.0;
 
-#[derive(Resource)]
-pub struct WeaponAttackTimer(pub Timer);
-
-// TODO: WeaponAttackTimer based fire_rate
 #[derive(Component)]
 pub struct Weapon {
-    // fire_rate: f32,
     pub projectile_velocity: f32,
     pub holder: Entity,
+    pub attack_timer: Timer,
+}
+
+impl Weapon {
+    pub fn new(holder: Entity, projectile_velocity: f32, fire_rate: f32) -> Self {
+        Weapon {
+            projectile_velocity,
+            holder,
+            attack_timer: Timer::new(fire_rate),
+        }
+    }
 }
 
 #[derive(Component)]
@@ -33,16 +39,15 @@ pub struct Projectile {
 pub fn fire_weapon(
     target: Res<PlayerTarget>,
     holders: Query<&Position>,
-    weapons: Query<(&Weapon, &Damage)>,
-    mut attack_timer: ResMut<WeaponAttackTimer>,
+    weapons: Query<(&mut Weapon, &Damage)>,
     frame_time: Res<FrameTime>,
     mut commands: Commands,
 ) {
-    if attack_timer.0.tick(frame_time.0)
-        && let Some(target) = target.0
-    {
-        for (weapon, weapon_damage) in weapons {
-            if let Ok(holder_position) = holders.get(weapon.holder) {
+    if let Some(target) = target.0 {
+        for (mut weapon, weapon_damage) in weapons {
+            if weapon.attack_timer.tick(frame_time.0)
+                && let Ok(holder_position) = holders.get(weapon.holder)
+            {
                 commands.spawn((
                     Position(holder_position.0),
                     Projectile {
