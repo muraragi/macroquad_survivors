@@ -71,31 +71,27 @@ async fn main() {
 
     world.insert_resource(PlayerTarget(None));
 
-    world.insert_resource(WeaponAttackTimer(Timer::new(0.2)));
-
     let mut game_schedule = Schedule::default();
-    game_schedule.add_systems((
-        player_controls,
-        enemy_spawner,
-        move_enemies.after(player_controls),
-        draw_enemies.after(move_enemies).after(enemy_spawner),
-        draw_player.after(move_enemies),
-        enemy_player_collision
-            .after(move_enemies)
-            .after(player_controls),
-        draw_player_health.after(enemy_player_collision),
-        select_target.after(move_enemies),
-        draw_reticle.after(select_target),
-        fire_weapon.after(select_target),
-        move_projectiles.after(fire_weapon).after(move_enemies),
-        draw_projectiles.after(move_projectiles),
-        projectile_enemy_collision
-            .after(move_enemies)
-            .after(move_projectiles),
-        draw_target_health.after(projectile_enemy_collision),
-        update_particles.after(projectile_enemy_collision),
-        draw_particles.after(update_particles),
-    ));
+    game_schedule.add_systems(
+        (
+            (player_controls, enemy_spawner),
+            (move_enemies, select_target).chain(),
+            fire_weapon,
+            move_projectiles,
+            (enemy_player_collision, projectile_enemy_collision),
+            update_particles,
+            (
+                draw_enemies,
+                draw_player,
+                draw_projectiles,
+                draw_reticle,
+                draw_player_health,
+                draw_target_health,
+                draw_particles,
+            ),
+        )
+            .chain(),
+    );
 
     let render_menu_id = world.register_system(render_menu);
     let mut menu_schedule = Schedule::default();
@@ -133,10 +129,7 @@ async fn main() {
                     .id();
 
                 commands.spawn((
-                    Weapon {
-                        projectile_velocity: 500.0,
-                        holder: player,
-                    },
+                    Weapon::new(player, 500.0, 0.2),
                     Damage(consts::damage::STARTING_PLAYER_DAMAGE),
                 ));
             }
