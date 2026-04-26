@@ -7,6 +7,7 @@ use crate::{
     movement::Position,
     player::PlayerTarget,
     resources::{FrameTime, Timer},
+    score::{Score, Value},
     stats::{Damage, Health},
     utils::{check_simple_collision, seek_target},
 };
@@ -79,11 +80,12 @@ pub fn move_projectiles(
 
 pub fn projectile_enemy_collision(
     projectiles: Query<(&Projectile, &Position, &Damage, Entity), Without<Enemy>>,
-    mut enemy_query: Query<(&Position, &mut Health, Entity), With<Enemy>>,
+    mut enemy_query: Query<(&Position, &mut Health, &Value, Entity), With<Enemy>>,
+    mut score: ResMut<Score>,
     mut commands: Commands,
 ) {
     for (projectile, porjectile_pos, projectile_damage, projectile_entity_id) in projectiles {
-        if let Ok((target_pos, mut target_health, enemy_entity_id)) =
+        if let Ok((target_pos, mut target_health, target_value, enemy_entity_id)) =
             enemy_query.get_mut(projectile.target)
             && check_simple_collision(target_pos.0, porjectile_pos.0, PROJECTILE_SIZE + 8.0)
         {
@@ -98,6 +100,7 @@ pub fn projectile_enemy_collision(
                         .map(|particle| (Position(target_pos.0), particle))
                         .collect::<Vec<(Position, Particle)>>(),
                 );
+                score.0 += target_value.0;
             }
         }
     }

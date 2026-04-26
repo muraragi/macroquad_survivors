@@ -7,6 +7,7 @@ mod graphics;
 mod movement;
 mod player;
 mod resources;
+mod score;
 mod stats;
 mod ui;
 mod utils;
@@ -21,6 +22,7 @@ use weapon::*;
 
 use crate::{
     graphics::{Particle, draw_particles, update_particles},
+    score::{Score, draw_score},
     ui::{get_skin, render_menu},
 };
 
@@ -65,6 +67,7 @@ async fn main() {
         width: screen_width(),
         height: screen_height(),
     });
+    world.insert_resource(Score(0));
 
     world.insert_resource(EnemySpawnTimer(Timer::new(1.0)));
     world.insert_resource(EnemyAttackTimer(Timer::new(0.5)));
@@ -87,6 +90,7 @@ async fn main() {
                 draw_reticle,
                 draw_player_health,
                 draw_target_health,
+                draw_score,
                 draw_particles,
             ),
         )
@@ -102,6 +106,8 @@ async fn main() {
         {
             GameState::Menu => {
                 commands.queue(|world: &mut World| {
+                    world.resource_mut::<Score>().0 = 0;
+
                     let to_despawn: Vec<Entity> = world
                         .query_filtered::<Entity, Or<(
                             With<Player>,

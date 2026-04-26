@@ -7,6 +7,7 @@ use crate::graphics::get_equilateral_triangle_sides;
 use crate::movement::{Position, Speed};
 use crate::player::{PLAYER_SIZE, Player};
 use crate::resources::{FrameTime, ScreenSize, Timer};
+use crate::score::Value;
 use crate::stats::{Damage, Health};
 use crate::utils::{check_simple_collision, seek_target};
 
@@ -43,6 +44,7 @@ struct EnemyStats {
     health: f32,
     damage: f32,
     speed: f32,
+    value: i32,
 }
 
 pub fn enemy_spawner(
@@ -62,16 +64,19 @@ pub fn enemy_spawner(
                 speed: speed::SLOW,
                 health: health::MEDIUM,
                 damage: damage::HEXAGON_DAMAGE,
+                value: 3,
             },
             EnemyType::Triangle => EnemyStats {
                 speed: speed::MEDIUM,
                 health: health::WEAK,
                 damage: damage::TRIANGLE_DAMAGE,
+                value: 1,
             },
             EnemyType::Square => EnemyStats {
                 speed: speed::MEDIUM,
                 health: health::WEAK,
                 damage: damage::SQUARE_DAMAGE,
+                value: 2,
             },
         };
 
@@ -81,6 +86,7 @@ pub fn enemy_spawner(
             Speed(enemy_stats.speed),
             Damage(enemy_stats.damage),
             Health(enemy_stats.health),
+            Value(enemy_stats.value),
         ));
     }
 }
