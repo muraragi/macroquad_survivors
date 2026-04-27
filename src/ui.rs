@@ -1,7 +1,7 @@
 use bevy_ecs::prelude::*;
 use macroquad::{prelude::*, ui::*};
 
-use crate::{GameState, GameStateChange, resources::ScreenSize};
+use crate::{GameState, observers::GameStateChange, resources::ScreenSize};
 
 pub fn get_skin(bg_color: &Color) -> Skin {
     let label_style = root_ui()

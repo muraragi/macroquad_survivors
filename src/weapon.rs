@@ -5,9 +5,10 @@ use crate::{
     enemy::Enemy,
     graphics::{Particle, create_explosion_particles},
     movement::Position,
+    observers::LevelUp,
     player::PlayerTarget,
     resources::{FrameTime, Timer},
-    score::{Score, Value},
+    score::{Score, Value, level_for_score},
     stats::{Damage, Health},
     utils::{check_simple_collision, seek_target},
 };
@@ -100,7 +101,13 @@ pub fn projectile_enemy_collision(
                         .map(|particle| (Position(target_pos.0), particle))
                         .collect::<Vec<(Position, Particle)>>(),
                 );
+
+                let prev_lvl = level_for_score(score.0);
                 score.0 += target_value.0;
+                let new_lvl = level_for_score(score.0);
+                if new_lvl > prev_lvl {
+                    commands.trigger(LevelUp);
+                }
             }
         }
     }

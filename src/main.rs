@@ -5,6 +5,7 @@ mod consts;
 mod enemy;
 mod graphics;
 mod movement;
+mod observers;
 mod player;
 mod resources;
 mod score;
@@ -14,14 +15,13 @@ mod utils;
 mod weapon;
 
 use enemy::*;
-use movement::*;
 use player::*;
 use resources::*;
-use stats::*;
 use weapon::*;
 
 use crate::{
-    graphics::{Particle, draw_particles, update_particles},
+    graphics::{draw_particles, update_particles},
+    observers::setup_observers,
     score::{Score, draw_score},
     ui::{get_skin, render_menu},
 };
@@ -34,10 +34,6 @@ fn get_window_config() -> Conf {
         ..Default::default()
     }
 }
-
-#[derive(Event)]
-pub struct GameStateChange(pub GameState);
-
 #[derive(Resource, Copy, Clone)]
 pub enum GameState {
     Menu,
@@ -101,46 +97,7 @@ async fn main() {
     let mut menu_schedule = Schedule::default();
     menu_schedule.add_systems(render_menu);
 
-    world.add_observer(
-        |state: On<GameStateChange>, screen: Res<ScreenSize>, mut commands: Commands| match state.0
-        {
-            GameState::Menu => {
-                commands.queue(|world: &mut World| {
-                    world.resource_mut::<Score>().0 = 0;
-
-                    let to_despawn: Vec<Entity> = world
-                        .query_filtered::<Entity, Or<(
-                            With<Player>,
-                            With<Enemy>,
-                            With<Projectile>,
-                            With<Weapon>,
-                            With<Particle>,
-                        )>>()
-                        .iter(world)
-                        .collect();
-                    for e in to_despawn {
-                        world.despawn(e);
-                    }
-                });
-            }
-            GameState::Running => {
-                let screen_center = Vec2::new(screen.width / 2.0, screen.height / 2.0);
-                let player = commands
-                    .spawn((
-                        Player,
-                        Position(screen_center),
-                        Speed(consts::speed::FAST),
-                        Health(consts::health::STRONG),
-                    ))
-                    .id();
-
-                commands.spawn((
-                    Weapon::new(player, 500.0, 0.2),
-                    Damage(consts::damage::STARTING_PLAYER_DAMAGE),
-                ));
-            }
-        },
-    );
+    setup_observers(&mut world);
 
     loop {
         let state = *world.resource::<GameState>();
