@@ -3,12 +3,13 @@ use std::cmp::Ordering;
 use bevy_ecs::prelude::*;
 use macroquad::prelude::*;
 
+use crate::GameState;
 use crate::enemy::Enemy;
 use crate::graphics::draw_reticle_at_pos;
 use crate::movement::{Position, Speed};
+use crate::observers::GameStateChange;
 use crate::resources::{FrameTime, ScreenSize};
 use crate::stats::Health;
-use crate::{GameState, GameStateChange};
 
 pub const PLAYER_SIZE: f32 = 16.0;
 
