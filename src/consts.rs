@@ -16,3 +16,14 @@ pub mod damage {
     pub const SQUARE_DAMAGE: f32 = 4.0;
     pub const STARTING_PLAYER_DAMAGE: f32 = 5.0;
 }
+
+pub mod color {
+    use macroquad::color::Color;
+
+    pub const BACKGROUND: Color = Color {
+        r: 0.0,
+        g: 0.0,
+        b: 0.08,
+        a: 1.0,
+    };
+}

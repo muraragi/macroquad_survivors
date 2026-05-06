@@ -1,9 +1,9 @@
 use bevy_ecs::prelude::*;
 use macroquad::{prelude::*, ui::*};
 
-use crate::{GameState, observers::GameStateChange, resources::ScreenSize};
+use crate::{GameState, consts, observers::GameStateChange, resources::ScreenSize};
 
-pub fn get_skin(bg_color: &Color) -> Skin {
+pub fn get_skin(bg_color: &Color, button_text_color: &Color) -> Skin {
     let label_style = root_ui()
         .style_builder()
         .text_color(Color::from_rgba(255, 255, 255, 255)) // yellow text
@@ -21,7 +21,7 @@ pub fn get_skin(bg_color: &Color) -> Skin {
         .background_margin(RectOffset::new(16.0, 16.0, 16.0, 16.0))
         .margin(RectOffset::new(16.0, 0.0, -8.0, -8.0))
         .color(RED)
-        .text_color(*bg_color)
+        .text_color(*button_text_color)
         .font_size(64)
         .build();
 
@@ -67,4 +67,36 @@ pub fn render_menu(
             }
         },
     );
+}
+
+pub fn render_level_up_ui(
+    screen_size: Res<ScreenSize>,
+    mut game_state: ResMut<GameState>,
+    mut commands: Commands,
+) {
+    let window_size = Vec2::new(screen_size.width / 3.0, screen_size.height / 3.0);
+    let btn_size = Vec2::new(window_size.x - 130.0, 50.0);
+    let level_up_window_skin =
+        get_skin(&Color::new(0.0, 0.0, 0.0, 0.2), &consts::color::BACKGROUND);
+    root_ui().push_skin(&level_up_window_skin);
+    root_ui().window(
+        hash!(),
+        vec2(
+            screen_width() / 2.0 - window_size.x / 2.0,
+            screen_height() / 2.0 - window_size.y / 2.0,
+        ),
+        window_size,
+        |ui| {
+            ui.label(Vec2::new(15.0, 0.0), "LVL UP!");
+            if widgets::Button::new("LVL UP")
+                .size(btn_size)
+                .position(vec2(65.0, 75.0))
+                .ui(ui)
+            {
+                *game_state = GameState::Running;
+                commands.trigger(GameStateChange(*game_state));
+            }
+        },
+    );
+    root_ui().pop_skin();
 }

@@ -2,10 +2,10 @@ use bevy_ecs::prelude::*;
 use macroquad::{color::WHITE, shapes::draw_circle};
 
 use crate::{
+    GameState,
     enemy::Enemy,
     graphics::{Particle, create_explosion_particles},
     movement::Position,
-    observers::LevelUp,
     player::PlayerTarget,
     resources::{FrameTime, Timer},
     score::{Score, Value, level_for_score},
@@ -83,6 +83,7 @@ pub fn projectile_enemy_collision(
     projectiles: Query<(&Projectile, &Position, &Damage, Entity), Without<Enemy>>,
     mut enemy_query: Query<(&Position, &mut Health, &Value, Entity), With<Enemy>>,
     mut score: ResMut<Score>,
+    mut state: ResMut<GameState>,
     mut commands: Commands,
 ) {
     for (projectile, porjectile_pos, projectile_damage, projectile_entity_id) in projectiles {
@@ -106,7 +107,7 @@ pub fn projectile_enemy_collision(
                 score.0 += target_value.0;
                 let new_lvl = level_for_score(score.0);
                 if new_lvl > prev_lvl {
-                    commands.trigger(LevelUp);
+                    *state = GameState::LevelUp;
                 }
             }
         }

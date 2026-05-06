@@ -23,7 +23,7 @@ use crate::{
     graphics::{draw_particles, update_particles},
     observers::setup_observers,
     score::{Score, draw_score},
-    ui::{get_skin, render_menu},
+    ui::{get_skin, render_level_up_ui, render_menu},
 };
 
 fn get_window_config() -> Conf {
@@ -38,19 +38,14 @@ fn get_window_config() -> Conf {
 pub enum GameState {
     Menu,
     Running,
+    LevelUp,
 }
 
 #[macroquad::main(get_window_config)]
 async fn main() {
     // set_cursor_grab(true);
-    let bg_color = Color {
-        r: 0.0,
-        g: 0.0,
-        b: 0.08,
-        a: 1.0,
-    };
 
-    let skin = get_skin(&bg_color);
+    let skin = get_skin(&consts::color::BACKGROUND, &consts::color::BACKGROUND);
 
     root_ui().push_skin(&skin);
 
@@ -70,8 +65,8 @@ async fn main() {
 
     world.insert_resource(PlayerTarget(None));
 
-    let mut game_schedule = Schedule::default();
-    game_schedule.add_systems(
+    let mut game_update_schedule = Schedule::default();
+    game_update_schedule.add_systems(
         (
             (player_controls, enemy_spawner),
             (move_enemies, select_target).chain(),
@@ -79,23 +74,24 @@ async fn main() {
             move_projectiles,
             (enemy_player_collision, projectile_enemy_collision),
             update_particles,
-            (
-                draw_enemies,
-                draw_player,
-                draw_projectiles,
-                draw_reticle,
-                draw_player_health,
-                draw_target_health,
-                draw_score,
-                draw_particles,
-            ),
         )
             .chain(),
     );
 
+    let mut game_draw_schedule = Schedule::default();
+    game_draw_schedule.add_systems((
+        draw_enemies,
+        draw_player,
+        draw_projectiles,
+        draw_reticle,
+        draw_player_health,
+        draw_target_health,
+        draw_score,
+        draw_particles,
+    ));
+
     let render_menu_id = world.register_system(render_menu);
-    let mut menu_schedule = Schedule::default();
-    menu_schedule.add_systems(render_menu);
+    let render_level_up_ui_id = world.register_system(render_level_up_ui);
 
     setup_observers(&mut world);
 
@@ -107,16 +103,25 @@ async fn main() {
         let mut screen = world.resource_mut::<ScreenSize>();
         screen.width = screen_width();
         screen.height = screen_height();
-        clear_background(bg_color);
 
         match state {
             GameState::Menu => {
+                clear_background(consts::color::BACKGROUND);
                 world
                     .run_system(render_menu_id)
                     .expect("render menu failed");
             }
             GameState::Running => {
-                game_schedule.run(&mut world);
+                clear_background(consts::color::BACKGROUND);
+                game_update_schedule.run(&mut world);
+                game_draw_schedule.run(&mut world);
+            }
+            GameState::LevelUp => {
+                clear_background(consts::color::BACKGROUND);
+                game_draw_schedule.run(&mut world);
+                world
+                    .run_system(render_level_up_ui_id)
+                    .expect("render level up ui failed");
             }
         }
 
