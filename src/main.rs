@@ -22,7 +22,7 @@ use weapon::*;
 use crate::{
     graphics::{draw_particles, update_particles},
     observers::setup_observers,
-    score::{Score, draw_score},
+    score::{Score, UpgradesToChoose, draw_score, get_random_upgrades},
     ui::{get_skin, render_level_up_ui, render_menu},
 };
 
@@ -43,9 +43,7 @@ pub enum GameState {
 
 #[macroquad::main(get_window_config)]
 async fn main() {
-    // set_cursor_grab(true);
-
-    let skin = get_skin(&consts::color::BACKGROUND, &consts::color::BACKGROUND);
+    let skin = get_skin(&consts::color::BACKGROUND);
 
     root_ui().push_skin(&skin);
 
@@ -59,6 +57,7 @@ async fn main() {
         height: screen_height(),
     });
     world.insert_resource(Score(0));
+    world.insert_resource(UpgradesToChoose(get_random_upgrades()));
 
     world.insert_resource(EnemySpawnTimer(Timer::new(1.0)));
     world.insert_resource(EnemyAttackTimer(Timer::new(0.5)));

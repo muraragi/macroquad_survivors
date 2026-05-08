@@ -14,7 +14,7 @@ pub struct ScreenSize {
 #[derive(Resource)]
 pub struct Timer {
     elapsed: f32,
-    interval: f32,
+    pub interval: f32,
 }
 
 impl Timer {

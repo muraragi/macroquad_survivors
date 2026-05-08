@@ -8,7 +8,7 @@ use crate::{
     movement::Position,
     player::PlayerTarget,
     resources::{FrameTime, Timer},
-    score::{Score, Value, level_for_score},
+    score::{Score, UpgradesToChoose, Value, get_random_upgrades, level_for_score},
     stats::{Damage, Health},
     utils::{check_simple_collision, seek_target},
 };
@@ -84,6 +84,7 @@ pub fn projectile_enemy_collision(
     mut enemy_query: Query<(&Position, &mut Health, &Value, Entity), With<Enemy>>,
     mut score: ResMut<Score>,
     mut state: ResMut<GameState>,
+    mut upgrades_to_choose: ResMut<UpgradesToChoose>,
     mut commands: Commands,
 ) {
     for (projectile, porjectile_pos, projectile_damage, projectile_entity_id) in projectiles {
@@ -107,6 +108,7 @@ pub fn projectile_enemy_collision(
                 score.0 += target_value.0;
                 let new_lvl = level_for_score(score.0);
                 if new_lvl > prev_lvl {
+                    upgrades_to_choose.0 = get_random_upgrades();
                     *state = GameState::LevelUp;
                 }
             }
