@@ -54,7 +54,7 @@ pub fn update_particles(
     }
 }
 
-pub fn draw_particles(particles: Query<(&mut Particle, &mut Position)>) {
+pub fn draw_particles(particles: Query<(&Particle, &Position)>) {
     for (particle, position) in particles {
         let alpha = particle.lifetime.clamp(0.0, 1.0);
         let color = Color::new(1.0, 0.6, 0.2, alpha);

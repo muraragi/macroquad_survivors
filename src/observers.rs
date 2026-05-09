@@ -54,7 +54,7 @@ pub fn setup_observers(world: &mut World) {
                         .id();
 
                     commands.spawn((
-                        Weapon::new(player, 500.0, 0.2),
+                        Weapon::new(player, 500.0, 0.35),
                         Damage(consts::damage::STARTING_PLAYER_DAMAGE),
                     ));
                 }

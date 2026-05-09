@@ -6,7 +6,7 @@ use crate::{
     enemy::Enemy,
     graphics::{Particle, create_explosion_particles},
     movement::Position,
-    player::PlayerTarget,
+    player::PlayerTargets,
     resources::{FrameTime, Timer},
     score::{Score, UpgradesToChoose, Value, get_random_upgrades, level_for_score},
     stats::{Damage, Health},
@@ -19,6 +19,7 @@ const PROJECTILE_SIZE: f32 = 2.0;
 pub struct Weapon {
     pub projectile_velocity: f32,
     pub holder: Entity,
+    pub max_targets: i32,
     pub attack_timer: Timer,
 }
 
@@ -27,6 +28,7 @@ impl Weapon {
         Weapon {
             projectile_velocity,
             holder,
+            max_targets: 1,
             attack_timer: Timer::new(fire_rate),
         }
     }
@@ -39,27 +41,27 @@ pub struct Projectile {
 }
 
 pub fn fire_weapon(
-    target: Res<PlayerTarget>,
+    targets: Res<PlayerTargets>,
     holders: Query<&Position>,
-    weapons: Query<(&mut Weapon, &Damage)>,
+    mut weapons: Query<(&mut Weapon, &Damage)>,
     frame_time: Res<FrameTime>,
     mut commands: Commands,
 ) {
-    if let Some(target) = target.0 {
-        for (mut weapon, weapon_damage) in weapons {
-            if weapon.attack_timer.tick(frame_time.0)
-                && let Ok(holder_position) = holders.get(weapon.holder)
-            {
+    if let Ok((mut weapon, damage)) = weapons.single_mut() {
+        if weapon.attack_timer.tick(frame_time.0)
+            && let Ok(holder_position) = holders.get(weapon.holder)
+        {
+            for target in &targets.0 {
                 commands.spawn((
                     Position(holder_position.0),
                     Projectile {
                         velocity: weapon.projectile_velocity,
-                        target,
+                        target: *target,
                     },
-                    Damage(weapon_damage.0),
+                    Damage(damage.0),
                 ));
-            };
-        }
+            }
+        };
     }
 }
 
@@ -86,15 +88,18 @@ pub fn projectile_enemy_collision(
     mut state: ResMut<GameState>,
     mut upgrades_to_choose: ResMut<UpgradesToChoose>,
     mut commands: Commands,
+    mut targets: ResMut<PlayerTargets>,
 ) {
-    for (projectile, porjectile_pos, projectile_damage, projectile_entity_id) in projectiles {
+    for (projectile, projectile_pos, projectile_damage, projectile_entity_id) in projectiles {
         if let Ok((target_pos, mut target_health, target_value, enemy_entity_id)) =
             enemy_query.get_mut(projectile.target)
-            && check_simple_collision(target_pos.0, porjectile_pos.0, PROJECTILE_SIZE + 8.0)
+            && check_simple_collision(target_pos.0, projectile_pos.0, PROJECTILE_SIZE + 8.0)
         {
             target_health.0 -= projectile_damage.0;
             commands.entity(projectile_entity_id).despawn();
+
             if target_health.0 <= 0.0 {
+                targets.0.retain(|target| *target != enemy_entity_id);
                 commands.entity(enemy_entity_id).despawn();
                 let particles = create_explosion_particles();
                 commands.spawn_batch(

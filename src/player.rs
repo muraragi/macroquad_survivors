@@ -10,6 +10,7 @@ use crate::movement::{Position, Speed};
 use crate::observers::GameStateChange;
 use crate::resources::{FrameTime, ScreenSize};
 use crate::stats::Health;
+use crate::weapon::Weapon;
 
 pub const PLAYER_SIZE: f32 = 16.0;
 
@@ -17,7 +18,7 @@ pub const PLAYER_SIZE: f32 = 16.0;
 pub struct Player;
 
 #[derive(Resource)]
-pub struct PlayerTarget(pub Option<Entity>);
+pub struct PlayerTargets(pub Vec<Entity>);
 
 pub fn player_controls(
     mut query: Query<(&mut Position, &Speed), With<Player>>,
@@ -68,44 +69,43 @@ pub fn draw_player_health(
     }
 }
 
-pub fn draw_target_health(
-    target_id: Res<PlayerTarget>,
-    target_query: Query<&Health, With<Enemy>>,
-    screen: Res<ScreenSize>,
-) {
-    let mut health_text = String::from("No target");
-
-    if let Some(target_id) = target_id.0
-        && let Ok(target_health) = target_query.get(target_id)
-    {
-        health_text = format!("Target health: {}", target_health.0);
-    }
-
-    draw_text(&health_text, screen.width - 264.0, 36.0, 32.0, RED);
-}
-
-pub fn select_target(
+pub fn select_targets(
     enemies: Query<(Entity, &Position), With<Enemy>>,
     player_pos: Query<&Position, With<Player>>,
-    mut target: ResMut<PlayerTarget>,
+    weapon: Query<&Weapon>,
+    mut targets: ResMut<PlayerTargets>,
 ) {
-    if let Ok(player_pos) = player_pos.single() {
-        if let Some(closest_enemy) = enemies.iter().min_by(|(_, a_pos), (_, b_pos)| {
-            let dist_a = (a_pos.0 - player_pos.0).length_squared();
-            let dist_b = (b_pos.0 - player_pos.0).length_squared();
+    if let Ok(player_pos) = player_pos.single()
+        && let Ok(weapon) = weapon.single()
+    {
+        let targets_required = weapon.max_targets as usize - targets.0.len();
 
-            dist_a.partial_cmp(&dist_b).unwrap_or(Ordering::Greater)
-        }) {
-            target.0 = Some(closest_enemy.0);
-        } else {
-            target.0 = None;
+        if targets_required > 0 {
+            let mut candidates = enemies
+                .iter()
+                .filter(|(enemy_entity, _)| !targets.0.iter().any(|target| target == enemy_entity))
+                .collect::<Vec<(Entity, &Position)>>();
+
+            candidates.sort_by(|(_, pos_a), (_, pos_b)| {
+                let dist_a = (pos_a.0 - player_pos.0).length_squared();
+                let dist_b = (pos_b.0 - player_pos.0).length_squared();
+
+                dist_a.partial_cmp(&dist_b).unwrap_or(Ordering::Greater)
+            });
+
+            targets.0.extend(
+                candidates
+                    .iter()
+                    .map(|(entity, _)| *entity)
+                    .take(targets_required),
+            );
         }
     }
 }
 
-pub fn draw_reticle(target: Res<PlayerTarget>, transform_query: Query<&Position, With<Enemy>>) {
-    if let Some(target_entity) = target.0 {
-        if let Ok(target_position) = transform_query.get(target_entity) {
+pub fn draw_reticle(targets: Res<PlayerTargets>, transform_query: Query<&Position, With<Enemy>>) {
+    for target in &targets.0 {
+        if let Ok(target_position) = transform_query.get(*target) {
             draw_reticle_at_pos(target_position);
         }
     }

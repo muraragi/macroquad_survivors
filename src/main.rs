@@ -62,16 +62,17 @@ async fn main() {
     world.insert_resource(EnemySpawnTimer(Timer::new(1.0)));
     world.insert_resource(EnemyAttackTimer(Timer::new(0.5)));
 
-    world.insert_resource(PlayerTarget(None));
+    world.insert_resource(PlayerTargets(vec![]));
 
     let mut game_update_schedule = Schedule::default();
     game_update_schedule.add_systems(
         (
             (player_controls, enemy_spawner),
-            (move_enemies, select_target).chain(),
-            fire_weapon,
+            move_enemies,
             move_projectiles,
             (enemy_player_collision, projectile_enemy_collision),
+            select_targets,
+            fire_weapon,
             update_particles,
         )
             .chain(),
@@ -84,7 +85,7 @@ async fn main() {
         draw_projectiles,
         draw_reticle,
         draw_player_health,
-        draw_target_health,
+        // draw_target_health,
         draw_score,
         draw_particles,
     ));

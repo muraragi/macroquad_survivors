@@ -116,10 +116,12 @@ pub fn render_level_up_ui(
                         match upgrade {
                             Upgrade::Attack(amount) => damage.0 += amount,
                             Upgrade::Speed(amount) => speed.0 += amount,
-                            Upgrade::FireRate(amount) => weapon.attack_timer.interval -= amount,
+                            Upgrade::FireRate(amount) => {
+                                weapon.attack_timer.interval =
+                                    (weapon.attack_timer.interval - amount).clamp(0.0001, 0.40);
+                            }
                             Upgrade::Health(amount) => health.0 += amount,
-                            // Upgrade::Target => todo!(),
-                            _ => (),
+                            Upgrade::Target => weapon.max_targets += 1,
                         }
 
                         *game_state = GameState::Running;
