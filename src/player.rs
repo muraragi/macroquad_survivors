@@ -79,7 +79,6 @@ pub fn select_targets(
         && let Ok(weapon) = weapon.single()
     {
         let targets_required = weapon.max_targets as usize - targets.0.len();
-
         if targets_required > 0 {
             let mut candidates = enemies
                 .iter()
